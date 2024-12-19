@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const moment = require("moment");
 
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -172,6 +173,36 @@ async function run() {
       } catch (error) {
         console.error("Check-out error:", error);
         res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    app.get("/api/checkins/current-month/:userId", async (req, res) => {
+      const userId = req.params.userId.toString();
+
+      try {
+        const startOfMonth = moment()
+          .startOf("month")
+          .startOf("day")
+          .format("YYYY-MM-DD HH:mm:ss"); // Start of the month at midnight
+        const endOfMonth = moment()
+          .endOf("month")
+          .endOf("day")
+          .format("YYYY-MM-DD HH:mm:ss"); // End of the month at 23:59:59
+
+
+        // Fetch check-ins for the current month using the formatted date strings
+        const Totalcheckins = await checkins
+          .find({
+            userId: userId,
+            time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
+          })
+          .toArray();
+
+        // Return the check-in data for the current month
+        res.json(Totalcheckins);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
       }
     });
   } finally {
