@@ -185,33 +185,64 @@ async function run() {
     });
 
     app.get("/api/checkins/current-month/:userId", async (req, res) => {
-      const userId = req.params.userId.toString();
-
+      const userId = req.params.userId;
+    
       try {
-        const startOfMonth = moment()
-          .startOf("month")
-          .startOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // Start of the month at midnight
-        const endOfMonth = moment()
-          .endOf("month")
-          .endOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // End of the month at 23:59:59
-
-        // Fetch check-ins for the current month using the formatted date strings
-        const Totalcheckins = await checkins
-          .find({
-            userId: userId,
-            time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
-          })
-          .toArray();
-
-        // Return the check-in data for the current month
-        res.json(Totalcheckins);
+        const startOfMonth = new Date(moment().startOf("month").toISOString()); // Start of the month
+        const endOfMonth = new Date(moment().endOf("month").toISOString()); // End of the month
+    
+        // Query to fetch check-ins for the current month
+        const totalCheckins = await checkins.countDocuments({
+          userId: userId,
+          time: { $gte: startOfMonth, $lte: endOfMonth },
+        });
+    
+        const lateCheckins = await checkins.countDocuments({
+          userId: userId,
+          time: { $gte: startOfMonth, $lte: endOfMonth },
+          note: "Late", // Assuming a "note" field is used to mark late entries
+        });
+    
+        // Return the summary
+        res.json({
+          totalCheckins,
+          lateCheckins,
+        });
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching check-ins for the current month:", error);
         res.status(500).json({ error: "Server error" });
       }
     });
+    
+
+    // app.get("/api/checkins/current-month/:userId", async (req, res) => {
+    //   const userId = req.params.userId.toString();
+
+    //   try {
+    //     const startOfMonth = moment()
+    //       .startOf("month")
+    //       .startOf("day")
+    //       .format("YYYY-MM-DD HH:mm:ss"); // Start of the month at midnight
+    //     const endOfMonth = moment()
+    //       .endOf("month")
+    //       .endOf("day")
+    //       .format("YYYY-MM-DD HH:mm:ss"); // End of the month at 23:59:59
+
+    //     // Fetch check-ins for the current month using the formatted date strings
+    //     const Totalcheckins = await checkins
+    //       .find({
+    //         userId: userId,
+    //         time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
+    //       })
+    //       .toArray();
+
+    //     // Return the check-in data for the current month
+    //     res.json(Totalcheckins);
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ error: "Server error" });
+    //   }
+    // });
 
     app.get("/getUser/:userId", async (req, res) => {
       const userId = req.params.userId;
