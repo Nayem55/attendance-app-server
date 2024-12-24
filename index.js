@@ -43,7 +43,7 @@ async function run() {
         name,
         number,
         checkIn: false,
-        lastChekedIn: "",
+        lastCheckedIn: "",
       };
       const result = await users.insertOne(newUser);
 
@@ -87,7 +87,7 @@ async function run() {
             email: user.email,
             number: user.number,
             checkIn: user.checkIn,
-            checkInTime: lastChekedIn,
+            lastCheckedIn: lastCheckedIn,
           },
         });
       } catch (error) {
@@ -131,7 +131,7 @@ async function run() {
         // Update the user's checkIn status in the 'users' collection
         await users.updateOne(
           { _id: new ObjectId(userId) },
-          { $set: { checkIn: true, lastChekedIn: time } }
+          { $set: { checkIn: true, lastCheckedIn: time } }
         );
 
         res.status(200).json({ message: "Check-in successful" });
