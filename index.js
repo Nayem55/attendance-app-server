@@ -87,7 +87,7 @@ async function run() {
             email: user.email,
             number: user.number,
             checkIn: user.checkIn,
-            lastCheckedIn: lastCheckedIn,
+            lastCheckedIn: user.lastCheckedIn,
           },
         });
       } catch (error) {
