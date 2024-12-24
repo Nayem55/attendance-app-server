@@ -37,7 +37,14 @@ async function run() {
       }
 
       // Insert user into DB
-      const newUser = { email, password, name, number, checkIn: false };
+      const newUser = {
+        email,
+        password,
+        name,
+        number,
+        checkIn: false,
+        lastChekedIn: "",
+      };
       const result = await users.insertOne(newUser);
 
       // Fetch the inserted user data using the insertedId
@@ -79,7 +86,8 @@ async function run() {
             name: user.name,
             email: user.email,
             number: user.number,
-            checkIn: user.checkIn, // Send checkIn status
+            checkIn: user.checkIn,
+            checkInTime: lastChekedIn,
           },
         });
       } catch (error) {
@@ -123,7 +131,7 @@ async function run() {
         // Update the user's checkIn status in the 'users' collection
         await users.updateOne(
           { _id: new ObjectId(userId) },
-          { $set: { checkIn: true } }
+          { $set: { checkIn: true, lastChekedIn: time } }
         );
 
         res.status(200).json({ message: "Check-in successful" });
@@ -189,7 +197,6 @@ async function run() {
           .endOf("day")
           .format("YYYY-MM-DD HH:mm:ss"); // End of the month at 23:59:59
 
-
         // Fetch check-ins for the current month using the formatted date strings
         const Totalcheckins = await checkins
           .find({
@@ -205,6 +212,25 @@ async function run() {
         res.status(500).json({ error: "Server error" });
       }
     });
+
+    app.get("/getUser/:userId", async (req, res) => {
+      const userId = req.params.userId;
+    
+      try {
+        const user = await users.findOne({ _id: new ObjectId(userId) });
+    
+        if (user) {
+          res.status(200).send(user);
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
+
   } finally {
   }
 }
