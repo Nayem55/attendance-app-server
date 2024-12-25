@@ -229,6 +229,35 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
+    app.put("/updateUser/:userId", async (req, res) => {
+      const userId = req.params.userId; // Extract userId from the route parameter
+      let updatedData = req.body; // Data to update, sent in the request body
+    
+      try {
+        // Remove the _id field from updatedData if it exists
+        delete updatedData._id;
+    
+        // Update the user in the database
+        const result = await users.updateOne(
+          { _id: new ObjectId(userId) }, // Match the user by their ID
+          { $set: updatedData } // Update the fields specified in the request body
+        );
+    
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "User updated successfully" });
+        } else if (result.matchedCount > 0) {
+          res.status(200).send({ message: "No changes made to the user" });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+    
+
   } finally {
   }
 }
