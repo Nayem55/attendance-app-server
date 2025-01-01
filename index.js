@@ -184,40 +184,92 @@ async function run() {
       }
     });
 
+    // app.get("/api/checkins/:userId", async (req, res) => {
+    //   const userId = req.params.userId.toString();
+    //   const { month, year } = req.query; // Accept month and year as query parameters
+    
+    //   try {
+    //     if (!month || !year) {
+    //       return res.status(400).json({ error: "Month and year are required" });
+    //     }
+    
+    //     // Use moment to calculate the start and end of the specified month
+    //     const startOfMonth = moment(`${year}-${month}-01`)
+    //       .startOf("month")
+    //       .startOf("day")
+    //       .format("YYYY-MM-DD HH:mm:ss"); // Start of the specified month at midnight
+    //     const endOfMonth = moment(`${year}-${month}-01`)
+    //       .endOf("month")
+    //       .endOf("day")
+    //       .format("YYYY-MM-DD HH:mm:ss"); // End of the specified month at 23:59:59
+    
+    //     // Fetch check-ins for the specified month and year
+    //     const Totalcheckins = await checkins
+    //       .find({
+    //         userId: userId,
+    //         time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
+    //       })
+    //       .toArray();
+    
+    //     // Return the check-in data for the specified month
+    //     res.json(Totalcheckins);
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ error: "Server error" });
+    //   }
+    // });
     app.get("/api/checkins/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
-      const { month, year } = req.query; // Accept month and year as query parameters
-    
+      const { month, year, date } = req.query; // Accept month, year, or date as query parameters
+      
       try {
-        if (!month || !year) {
-          return res.status(400).json({ error: "Month and year are required" });
+        // If date is provided, filter by today's date
+        if (date) {
+          const today = moment(date).startOf("day").format("YYYY-MM-DD HH:mm:ss");
+          const endOfDay = moment(date).endOf("day").format("YYYY-MM-DD HH:mm:ss");
+    
+          // Fetch check-ins for today's date
+          const todayCheckins = await checkins
+            .find({
+              userId: userId,
+              time: { $gte: today, $lte: endOfDay },
+            })
+            .toArray();
+    
+          return res.json(todayCheckins); // Return today's check-ins
         }
     
-        // Use moment to calculate the start and end of the specified month
-        const startOfMonth = moment(`${year}-${month}-01`)
-          .startOf("month")
-          .startOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // Start of the specified month at midnight
-        const endOfMonth = moment(`${year}-${month}-01`)
-          .endOf("month")
-          .endOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // End of the specified month at 23:59:59
+        // If month and year are provided, filter by month and year
+        if (month && year) {
+          const startOfMonth = moment(`${year}-${month}-01`)
+            .startOf("month")
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfMonth = moment(`${year}-${month}-01`)
+            .endOf("month")
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
     
-        // Fetch check-ins for the specified month and year
-        const Totalcheckins = await checkins
-          .find({
-            userId: userId,
-            time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
-          })
-          .toArray();
+          // Fetch check-ins for the specified month and year
+          const Totalcheckins = await checkins
+            .find({
+              userId: userId,
+              time: { $gte: startOfMonth, $lte: endOfMonth },
+            })
+            .toArray();
     
-        // Return the check-in data for the specified month
-        res.json(Totalcheckins);
+          return res.json(Totalcheckins); // Return check-ins for the specified month
+        }
+    
+        // If neither month/year nor date are provided, send a bad request
+        return res.status(400).json({ error: "Month, year, or date are required" });
+    
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
       }
     });
+    
     
 
     app.get("/getAllUser", async (req, res) => {
