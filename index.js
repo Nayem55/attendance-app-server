@@ -184,35 +184,57 @@ async function run() {
       }
     });
 
-    app.get("/api/checkins/current-month/:userId", async (req, res) => {
+    app.get("/api/checkins/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
-
+      const { month, year } = req.query; // Accept month and year as query parameters
+    
       try {
-        const startOfMonth = moment()
+        if (!month || !year) {
+          return res.status(400).json({ error: "Month and year are required" });
+        }
+    
+        // Use moment to calculate the start and end of the specified month
+        const startOfMonth = moment(`${year}-${month}-01`)
           .startOf("month")
           .startOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // Start of the month at midnight
-        const endOfMonth = moment()
+          .format("YYYY-MM-DD HH:mm:ss"); // Start of the specified month at midnight
+        const endOfMonth = moment(`${year}-${month}-01`)
           .endOf("month")
           .endOf("day")
-          .format("YYYY-MM-DD HH:mm:ss"); // End of the month at 23:59:59
-
-        // Fetch check-ins for the current month using the formatted date strings
+          .format("YYYY-MM-DD HH:mm:ss"); // End of the specified month at 23:59:59
+    
+        // Fetch check-ins for the specified month and year
         const Totalcheckins = await checkins
           .find({
             userId: userId,
             time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
           })
           .toArray();
-
-        // Return the check-in data for the current month
+    
+        // Return the check-in data for the specified month
         res.json(Totalcheckins);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
       }
     });
+    
 
+    app.get("/getAllUser", async (req, res) => {
+
+      try {
+        const user = await users.find({}).toArray();
+
+        if (user) {
+          res.status(200).send(user);
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
     app.get("/getUser/:userId", async (req, res) => {
       const userId = req.params.userId;
 
