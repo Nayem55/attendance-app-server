@@ -184,61 +184,31 @@ async function run() {
       }
     });
 
-    // app.get("/api/checkins/:userId", async (req, res) => {
-    //   const userId = req.params.userId.toString();
-    //   const { month, year } = req.query; // Accept month and year as query parameters
-    
-    //   try {
-    //     if (!month || !year) {
-    //       return res.status(400).json({ error: "Month and year are required" });
-    //     }
-    
-    //     // Use moment to calculate the start and end of the specified month
-    //     const startOfMonth = moment(`${year}-${month}-01`)
-    //       .startOf("month")
-    //       .startOf("day")
-    //       .format("YYYY-MM-DD HH:mm:ss"); // Start of the specified month at midnight
-    //     const endOfMonth = moment(`${year}-${month}-01`)
-    //       .endOf("month")
-    //       .endOf("day")
-    //       .format("YYYY-MM-DD HH:mm:ss"); // End of the specified month at 23:59:59
-    
-    //     // Fetch check-ins for the specified month and year
-    //     const Totalcheckins = await checkins
-    //       .find({
-    //         userId: userId,
-    //         time: { $gte: startOfMonth, $lte: endOfMonth }, // Compare as strings
-    //       })
-    //       .toArray();
-    
-    //     // Return the check-in data for the specified month
-    //     res.json(Totalcheckins);
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).json({ error: "Server error" });
-    //   }
-    // });
-    app.get("/api/checkins/:userId", async (req, res) => {
+    app.get("/api/checkouts/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
       const { month, year, date } = req.query; // Accept month, year, or date as query parameters
-      
+
       try {
         // If date is provided, filter by today's date
         if (date) {
-          const today = moment(date).startOf("day").format("YYYY-MM-DD HH:mm:ss");
-          const endOfDay = moment(date).endOf("day").format("YYYY-MM-DD HH:mm:ss");
-    
+          const today = moment(date)
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfDay = moment(date)
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+
           // Fetch check-ins for today's date
-          const todayCheckins = await checkins
+          const todayCheckouts = await checkouts
             .find({
               userId: userId,
               time: { $gte: today, $lte: endOfDay },
             })
             .toArray();
-    
-          return res.json(todayCheckins); // Return today's check-ins
+
+          return res.json(todayCheckouts); // Return today's check-ins
         }
-    
+
         // If month and year are provided, filter by month and year
         if (month && year) {
           const startOfMonth = moment(`${year}-${month}-01`)
@@ -249,7 +219,64 @@ async function run() {
             .endOf("month")
             .endOf("day")
             .format("YYYY-MM-DD HH:mm:ss");
-    
+
+          // Fetch check-ins for the specified month and year
+          const Totalcheckouts = await checkouts
+            .find({
+              userId: userId,
+              time: { $gte: startOfMonth, $lte: endOfMonth },
+            })
+            .toArray();
+
+          return res.json(Totalcheckouts); // Return check-ins for the specified month
+        }
+
+        // If neither month/year nor date are provided, send a bad request
+        return res
+          .status(400)
+          .json({ error: "Month, year, or date are required" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+      }
+    });
+
+    app.get("/api/checkins/:userId", async (req, res) => {
+      const userId = req.params.userId.toString();
+      const { month, year, date } = req.query; // Accept month, year, or date as query parameters
+
+      try {
+        // If date is provided, filter by today's date
+        if (date) {
+          const today = moment(date)
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfDay = moment(date)
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+
+          // Fetch check-ins for today's date
+          const todayCheckins = await checkins
+            .find({
+              userId: userId,
+              time: { $gte: today, $lte: endOfDay },
+            })
+            .toArray();
+
+          return res.json(todayCheckins); // Return today's check-ins
+        }
+
+        // If month and year are provided, filter by month and year
+        if (month && year) {
+          const startOfMonth = moment(`${year}-${month}-01`)
+            .startOf("month")
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfMonth = moment(`${year}-${month}-01`)
+            .endOf("month")
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+
           // Fetch check-ins for the specified month and year
           const Totalcheckins = await checkins
             .find({
@@ -257,23 +284,21 @@ async function run() {
               time: { $gte: startOfMonth, $lte: endOfMonth },
             })
             .toArray();
-    
+
           return res.json(Totalcheckins); // Return check-ins for the specified month
         }
-    
+
         // If neither month/year nor date are provided, send a bad request
-        return res.status(400).json({ error: "Month, year, or date are required" });
-    
+        return res
+          .status(400)
+          .json({ error: "Month, year, or date are required" });
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
       }
     });
-    
-    
 
     app.get("/getAllUser", async (req, res) => {
-
       try {
         const user = await users.find({}).toArray();
 
@@ -307,17 +332,17 @@ async function run() {
     app.put("/updateUser/:userId", async (req, res) => {
       const userId = req.params.userId; // Extract userId from the route parameter
       let updatedData = req.body; // Data to update, sent in the request body
-    
+
       try {
         // Remove the _id field from updatedData if it exists
         delete updatedData._id;
-    
+
         // Update the user in the database
         const result = await users.updateOne(
           { _id: new ObjectId(userId) }, // Match the user by their ID
           { $set: updatedData } // Update the fields specified in the request body
         );
-    
+
         if (result.modifiedCount > 0) {
           res.status(200).send({ message: "User updated successfully" });
         } else if (result.matchedCount > 0) {
@@ -330,8 +355,6 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
-    
-
   } finally {
   }
 }
