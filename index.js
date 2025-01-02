@@ -28,10 +28,12 @@ async function run() {
 
     app.put("/api/checkins/add-status", async (req, res) => {
       try {
-    
         // Update all documents by setting the `status` field to "Approved"
-        const result = await checkins.updateMany({}, { $set: { status: "Approved" } });
-    
+        const result = await checkins.updateMany(
+          {},
+          { $set: { status: "Approved" } }
+        );
+
         res.status(200).json({
           message: "Status field added and updated successfully",
           modifiedCount: result.modifiedCount,
@@ -139,7 +141,7 @@ async function run() {
           time,
           date,
           location,
-          status : "Pending"
+          status: "Pending",
         };
 
         // Insert check-in data into the 'checkins' collection
@@ -184,7 +186,7 @@ async function run() {
           time,
           date,
           location,
-          status : "Pending"
+          status: "Pending",
         };
 
         await checkouts.insertOne(checkOutData);
@@ -313,6 +315,36 @@ async function run() {
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
+      }
+    });
+
+    //Update checkin status
+    
+    app.put("/api/update-status/:reportId", async (req, res) => {
+      const reportId = req.params.reportId; // Extract the report ID from the URL
+      const { status } = req.body; // Extract the new status from the request body
+
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+
+      try {
+        // Update the status field in the checkins collection
+        const result = await checkins.updateOne(
+          { _id: new ObjectId(reportId) }, // Match the document by its ID
+          { $set: { status } } // Update the status field
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Check-in report not found" });
+        }
+
+        res.status(200).json({
+          message: `Check-in status updated to '${status}' successfully.`,
+        });
+      } catch (error) {
+        console.error("Error updating check-in status:", error);
+        res.status(500).json({ message: "Internal Server Error" });
       }
     });
 
