@@ -26,6 +26,22 @@ async function run() {
     const checkins = client.db("attendance").collection("checkins");
     const checkouts = client.db("attendance").collection("checkouts");
 
+    app.put("/api/checkins/add-status", async (req, res) => {
+      try {
+    
+        // Update all documents by setting the `status` field to "Approved"
+        const result = await checkins.updateMany({}, { $set: { status: "Approved" } });
+    
+        res.status(200).json({
+          message: "Status field added and updated successfully",
+          modifiedCount: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error("Error updating checkins:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // Sign-up Route
     app.post("/signup", async (req, res) => {
       const { email, password, name, number } = req.body;
@@ -123,6 +139,7 @@ async function run() {
           time,
           date,
           location,
+          status : "Pending"
         };
 
         // Insert check-in data into the 'checkins' collection
@@ -167,6 +184,7 @@ async function run() {
           time,
           date,
           location,
+          status : "Pending"
         };
 
         await checkouts.insertOne(checkOutData);
