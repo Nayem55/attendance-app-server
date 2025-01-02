@@ -116,7 +116,7 @@ async function run() {
 
     // Check-in Route
     app.post("/checkin", async (req, res) => {
-      const { userId, note, image, time, date, location } = req.body;
+      const { userId, note, image, time, date, location, status } = req.body;
 
       try {
         // Find the user by userId
@@ -141,7 +141,7 @@ async function run() {
           time,
           date,
           location,
-          status: "Pending",
+          status,
         };
 
         // Insert check-in data into the 'checkins' collection
@@ -186,7 +186,7 @@ async function run() {
           time,
           date,
           location,
-          status: "Pending",
+          status: "Approved",
         };
 
         await checkouts.insertOne(checkOutData);
@@ -319,7 +319,7 @@ async function run() {
     });
 
     //Update checkin status
-    
+
     app.put("/api/update-status/:reportId", async (req, res) => {
       const reportId = req.params.reportId; // Extract the report ID from the URL
       const { status } = req.body; // Extract the new status from the request body
