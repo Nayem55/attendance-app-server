@@ -115,26 +115,127 @@ async function run() {
     });
 
     // Check-in Route
+    // app.post("/checkin", async (req, res) => {
+    //   const { userId, note, image, time, date, location, status } = req.body;
+
+    //   try {
+    //     // Find the user by userId
+    //     const user = await users.findOne({ _id: new ObjectId(userId) });
+
+    //     if (!user) {
+    //       return res.status(404).json({ message: "User not found" });
+    //     }
+
+    //     // Check if the user has already checked in on the same date
+    //     const existingCheckIn = await checkins.findOne({ userId, date });
+
+    //     if (existingCheckIn) {
+    //       return res.status(400).json({
+    //         message:
+    //           "You have already checked in today. Multiple check-ins are not allowed.",
+    //       });
+    //     }
+
+    //     // Save check-in details to the database
+    //     const checkInData = {
+    //       userId,
+    //       note,
+    //       image,
+    //       time,
+    //       date,
+    //       location,
+    //       status,
+    //     };
+
+    //     // Insert check-in data into the 'checkins' collection
+    //     await checkins.insertOne(checkInData);
+
+    //     // Update the user's checkIn status in the 'users' collection
+    //     await users.updateOne(
+    //       { _id: new ObjectId(userId) },
+    //       { $set: { checkIn: true, lastCheckedIn: time } }
+    //     );
+
+    //     res.status(200).json({ message: "Check-in successful" });
+    //   } catch (error) {
+    //     console.error("Error during check-in:", error);
+    //     res.status(500).json({ message: "Internal server error" });
+    //   }
+    // });
+
+    // app.post("/checkout", async (req, res) => {
+    //   const { userId, note, image, time, date, location } = req.body;
+
+    //   try {
+    //     // Find the user
+    //     const user = await users.findOne({ _id: new ObjectId(userId) });
+
+    //     if (!user) {
+    //       return res.status(404).json({ message: "User not found" });
+    //     }
+
+    //     // Prevent check-out if the user isn't checked in
+    //     if (!user.checkIn) {
+    //       return res.status(400).json({
+    //         message: "You are not checked in. Please check in first.",
+    //       });
+    //     }
+
+    //     // Save check-out details to the database (similar to check-in)
+    //     const checkOutData = {
+    //       userId,
+    //       note,
+    //       image,
+    //       time,
+    //       date,
+    //       location,
+    //       status: "Approved",
+    //     };
+
+    //     await checkouts.insertOne(checkOutData);
+
+    //     // Update user's checked-in status to false
+    //     await users.updateOne(
+    //       { _id: new ObjectId(userId) },
+    //       { $set: { checkIn: false } }
+    //     );
+
+    //     res.status(200).json({ message: "Check-out successful" });
+    //   } catch (error) {
+    //     console.error("Check-out error:", error);
+    //     res.status(500).json({ message: "Internal server error" });
+    //   }
+    // });
+
     app.post("/checkin", async (req, res) => {
       const { userId, note, image, time, date, location, status } = req.body;
 
       try {
-        // Find the user by userId
-        const user = await users.findOne({ _id: new ObjectId(userId) });
-
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-
-        // Check if the user has already checked in on the same date
+        // Reverse geocoding with Google Geocoding API
+        const { latitude, longitude } = location;
+ 
+        // Check if the user has already checked in today
         const existingCheckIn = await checkins.findOne({ userId, date });
-
         if (existingCheckIn) {
           return res.status(400).json({
             message:
               "You have already checked in today. Multiple check-ins are not allowed.",
           });
         }
+
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_GOOGLE_API_KEY`;
+
+        const geocodeResponse = await axios.get(geocodeUrl);
+        const placeName =
+          geocodeResponse.data.results[0]?.formatted_address ||
+          "Unknown location";
+
+        // Find the user by userId
+        const user = await users.findOne({ _id: new ObjectId(userId) });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
 
         // Save check-in details to the database
         const checkInData = {
@@ -143,14 +244,13 @@ async function run() {
           image,
           time,
           date,
-          location,
+          location: placeName, // Save the place name instead of lat/lng
           status,
         };
 
-        // Insert check-in data into the 'checkins' collection
         await checkins.insertOne(checkInData);
 
-        // Update the user's checkIn status in the 'users' collection
+        // Update the user's check-in status
         await users.updateOne(
           { _id: new ObjectId(userId) },
           { $set: { checkIn: true, lastCheckedIn: time } }
@@ -163,106 +263,112 @@ async function run() {
       }
     });
 
+    // app.get("/api/checkouts/:userId", async (req, res) => {
+    //   const userId = req.params.userId.toString();
+    //   const { month, year, date } = req.query; // Accept month, year, or date as query parameters
+
+    //   try {
+    //     // If date is provided, filter by today's date
+    //     if (date) {
+    //       const today = moment(date)
+    //         .startOf("day")
+    //         .format("YYYY-MM-DD HH:mm:ss");
+    //       const endOfDay = moment(date)
+    //         .endOf("day")
+    //         .format("YYYY-MM-DD HH:mm:ss");
+
+    //       // Fetch check-ins for today's date
+    //       const todayCheckouts = await checkouts
+    //         .find({
+    //           userId: userId,
+    //           time: { $gte: today, $lte: endOfDay },
+    //         })
+    //         .toArray();
+
+    //       return res.json(todayCheckouts); // Return today's check-ins
+    //     }
+
+    //     // If month and year are provided, filter by month and year
+    //     if (month && year) {
+    //       const startOfMonth = moment(`${year}-${month}-01`)
+    //         .startOf("month")
+    //         .startOf("day")
+    //         .format("YYYY-MM-DD HH:mm:ss");
+    //       const endOfMonth = moment(`${year}-${month}-01`)
+    //         .endOf("month")
+    //         .endOf("day")
+    //         .format("YYYY-MM-DD HH:mm:ss");
+
+    //       // Fetch check-ins for the specified month and year
+    //       const Totalcheckouts = await checkouts
+    //         .find({
+    //           userId: userId,
+    //           time: { $gte: startOfMonth, $lte: endOfMonth },
+    //         })
+    //         .toArray();
+
+    //       return res.json(Totalcheckouts); // Return check-ins for the specified month
+    //     }
+
+    //     // If neither month/year nor date are provided, send a bad request
+    //     return res
+    //       .status(400)
+    //       .json({ error: "Month, year, or date are required" });
+    //   } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ error: "Server error" });
+    //   }
+    // });
     app.post("/checkout", async (req, res) => {
       const { userId, note, image, time, date, location } = req.body;
-
+    
       try {
-        // Find the user
+        // Reverse geocoding with Google Geocoding API
+        const { latitude, longitude } = location;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_GOOGLE_API_KEY`;
+    
+        const geocodeResponse = await axios.get(geocodeUrl);
+        const placeName = geocodeResponse.data.results[0]?.formatted_address || "Unknown location";
+    
+        // Find the user by userId
         const user = await users.findOne({ _id: new ObjectId(userId) });
-
         if (!user) {
           return res.status(404).json({ message: "User not found" });
         }
-
+    
         // Prevent check-out if the user isn't checked in
         if (!user.checkIn) {
           return res.status(400).json({
             message: "You are not checked in. Please check in first.",
           });
         }
-
-        // Save check-out details to the database (similar to check-in)
+    
+        // Save check-out details to the database
         const checkOutData = {
           userId,
           note,
           image,
           time,
           date,
-          location,
+          location: placeName, // Save the place name instead of lat/lng
           status: "Approved",
         };
-
+    
         await checkouts.insertOne(checkOutData);
-
-        // Update user's checked-in status to false
+    
+        // Update the user's check-in status to false
         await users.updateOne(
           { _id: new ObjectId(userId) },
           { $set: { checkIn: false } }
         );
-
+    
         res.status(200).json({ message: "Check-out successful" });
       } catch (error) {
         console.error("Check-out error:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     });
-
-    app.get("/api/checkouts/:userId", async (req, res) => {
-      const userId = req.params.userId.toString();
-      const { month, year, date } = req.query; // Accept month, year, or date as query parameters
-
-      try {
-        // If date is provided, filter by today's date
-        if (date) {
-          const today = moment(date)
-            .startOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
-          const endOfDay = moment(date)
-            .endOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
-
-          // Fetch check-ins for today's date
-          const todayCheckouts = await checkouts
-            .find({
-              userId: userId,
-              time: { $gte: today, $lte: endOfDay },
-            })
-            .toArray();
-
-          return res.json(todayCheckouts); // Return today's check-ins
-        }
-
-        // If month and year are provided, filter by month and year
-        if (month && year) {
-          const startOfMonth = moment(`${year}-${month}-01`)
-            .startOf("month")
-            .startOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
-          const endOfMonth = moment(`${year}-${month}-01`)
-            .endOf("month")
-            .endOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
-
-          // Fetch check-ins for the specified month and year
-          const Totalcheckouts = await checkouts
-            .find({
-              userId: userId,
-              time: { $gte: startOfMonth, $lte: endOfMonth },
-            })
-            .toArray();
-
-          return res.json(Totalcheckouts); // Return check-ins for the specified month
-        }
-
-        // If neither month/year nor date are provided, send a bad request
-        return res
-          .status(400)
-          .json({ error: "Month, year, or date are required" });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Server error" });
-      }
-    });
+    
 
     app.get("/api/checkins/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
