@@ -223,7 +223,7 @@ async function run() {
           });
         }
 
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_GOOGLE_API_KEY`;
+        const geocodeUrl = `https://maps.gomaps.pro/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AlzaSyaYYq5T3EP3itD9q2ADu8EccWBXyXWa1Bx`;
 
         const geocodeResponse = await axios.get(geocodeUrl);
         const placeName =
