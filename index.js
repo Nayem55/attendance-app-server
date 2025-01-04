@@ -126,10 +126,13 @@ async function run() {
           return res.status(404).json({ message: "User not found" });
         }
 
-        // Prevent duplicate check-ins if already checked in
-        if (user.checkIn) {
+        // Check if the user has already checked in on the same date
+        const existingCheckIn = await checkins.findOne({ userId, date });
+
+        if (existingCheckIn) {
           return res.status(400).json({
-            message: "You are already checked in. Please check out first.",
+            message:
+              "You have already checked in today. Multiple check-ins are not allowed.",
           });
         }
 
