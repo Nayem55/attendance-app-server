@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const moment = require("moment");
+const { default: axios } = require("axios");
 
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -213,6 +214,7 @@ async function run() {
       try {
         // Reverse geocoding with Google Geocoding API
         const { latitude, longitude } = location;
+        console.log(latitude,longitude)
  
         // Check if the user has already checked in today
         const existingCheckIn = await checkins.findOne({ userId, date });
