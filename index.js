@@ -264,62 +264,62 @@ async function run() {
       }
     });
 
-    // app.get("/api/checkouts/:userId", async (req, res) => {
-    //   const userId = req.params.userId.toString();
-    //   const { month, year, date } = req.query; // Accept month, year, or date as query parameters
+    app.get("/api/checkouts/:userId", async (req, res) => {
+      const userId = req.params.userId.toString();
+      const { month, year, date } = req.query; // Accept month, year, or date as query parameters
 
-    //   try {
-    //     // If date is provided, filter by today's date
-    //     if (date) {
-    //       const today = moment(date)
-    //         .startOf("day")
-    //         .format("YYYY-MM-DD HH:mm:ss");
-    //       const endOfDay = moment(date)
-    //         .endOf("day")
-    //         .format("YYYY-MM-DD HH:mm:ss");
+      try {
+        // If date is provided, filter by today's date
+        if (date) {
+          const today = moment(date)
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfDay = moment(date)
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
 
-    //       // Fetch check-ins for today's date
-    //       const todayCheckouts = await checkouts
-    //         .find({
-    //           userId: userId,
-    //           time: { $gte: today, $lte: endOfDay },
-    //         })
-    //         .toArray();
+          // Fetch check-ins for today's date
+          const todayCheckouts = await checkouts
+            .find({
+              userId: userId,
+              time: { $gte: today, $lte: endOfDay },
+            })
+            .toArray();
 
-    //       return res.json(todayCheckouts); // Return today's check-ins
-    //     }
+          return res.json(todayCheckouts); // Return today's check-ins
+        }
 
-    //     // If month and year are provided, filter by month and year
-    //     if (month && year) {
-    //       const startOfMonth = moment(`${year}-${month}-01`)
-    //         .startOf("month")
-    //         .startOf("day")
-    //         .format("YYYY-MM-DD HH:mm:ss");
-    //       const endOfMonth = moment(`${year}-${month}-01`)
-    //         .endOf("month")
-    //         .endOf("day")
-    //         .format("YYYY-MM-DD HH:mm:ss");
+        // If month and year are provided, filter by month and year
+        if (month && year) {
+          const startOfMonth = moment(`${year}-${month}-01`)
+            .startOf("month")
+            .startOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
+          const endOfMonth = moment(`${year}-${month}-01`)
+            .endOf("month")
+            .endOf("day")
+            .format("YYYY-MM-DD HH:mm:ss");
 
-    //       // Fetch check-ins for the specified month and year
-    //       const Totalcheckouts = await checkouts
-    //         .find({
-    //           userId: userId,
-    //           time: { $gte: startOfMonth, $lte: endOfMonth },
-    //         })
-    //         .toArray();
+          // Fetch check-ins for the specified month and year
+          const Totalcheckouts = await checkouts
+            .find({
+              userId: userId,
+              time: { $gte: startOfMonth, $lte: endOfMonth },
+            })
+            .toArray();
 
-    //       return res.json(Totalcheckouts); // Return check-ins for the specified month
-    //     }
+          return res.json(Totalcheckouts); // Return check-ins for the specified month
+        }
 
-    //     // If neither month/year nor date are provided, send a bad request
-    //     return res
-    //       .status(400)
-    //       .json({ error: "Month, year, or date are required" });
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).json({ error: "Server error" });
-    //   }
-    // });
+        // If neither month/year nor date are provided, send a bad request
+        return res
+          .status(400)
+          .json({ error: "Month, year, or date are required" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+      }
+    });
     app.post("/checkout", async (req, res) => {
       const { userId, note, image, time, date, location } = req.body;
     
