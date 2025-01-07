@@ -26,6 +26,7 @@ async function run() {
     const users = client.db("attendance").collection("users");
     const checkins = client.db("attendance").collection("checkins");
     const checkouts = client.db("attendance").collection("checkouts");
+    const holidays = client.db("attendance").collection("holidays");
 
     app.put("/api/checkins/add-status", async (req, res) => {
       try {
@@ -320,6 +321,7 @@ async function run() {
         res.status(500).json({ error: "Server error" });
       }
     });
+
     app.post("/checkout", async (req, res) => {
       const { userId, note, image, time, date, location } = req.body;
     
@@ -472,6 +474,7 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
     app.get("/getUser/:userId", async (req, res) => {
       const userId = req.params.userId;
 
@@ -515,6 +518,103 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+
+     // Add a new holiday
+     app.post("/api/holidays", async (req, res) => {
+      const { name, date, description } = req.body;
+
+      if (!name || !date) {
+        return res.status(400).json({ message: "Name and date are required." });
+      }
+
+      try {
+        const newHoliday = { name, date, description };
+        const result = await holidays.insertOne(newHoliday);
+
+        res.status(201).json({
+          message: "Holiday added successfully",
+          holiday: { ...newHoliday, _id: result.insertedId },
+        });
+      } catch (error) {
+        console.error("Error adding holiday:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    // Fetch all holidays
+    app.get("/api/holidays", async (req, res) => {
+      try {
+        const holidayList = await holidays.find({}).toArray();
+        res.status(200).json(holidayList);
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    // Fetch a single holiday by ID
+    app.get("/api/holidays/:holidayId", async (req, res) => {
+      const holidayId = req.params.holidayId;
+
+      try {
+        const holiday = await holidays.findOne({ _id: new ObjectId(holidayId) });
+
+        if (!holiday) {
+          return res.status(404).json({ message: "Holiday not found" });
+        }
+
+        res.status(200).json(holiday);
+      } catch (error) {
+        console.error("Error fetching holiday:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    // Update a holiday
+    app.put("/api/holidays/:holidayId", async (req, res) => {
+      const holidayId = req.params.holidayId;
+      const { name, date, description } = req.body;
+
+      try {
+        const updatedHoliday = {};
+        if (name) updatedHoliday.name = name;
+        if (date) updatedHoliday.date = date;
+        if (description) updatedHoliday.description = description;
+
+        const result = await holidays.updateOne(
+          { _id: new ObjectId(holidayId) },
+          { $set: updatedHoliday }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Holiday not found" });
+        }
+
+        res.status(200).json({ message: "Holiday updated successfully" });
+      } catch (error) {
+        console.error("Error updating holiday:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    // Delete a holiday
+    app.delete("/api/holidays/:holidayId", async (req, res) => {
+      const holidayId = req.params.holidayId;
+
+      try {
+        const result = await holidays.deleteOne({ _id: new ObjectId(holidayId) });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ message: "Holiday not found" });
+        }
+
+        res.status(200).json({ message: "Holiday deleted successfully" });
+      } catch (error) {
+        console.error("Error deleting holiday:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+    
   } finally {
   }
 }
