@@ -39,7 +39,7 @@ async function markAbsences() {
     const yesterday = dayjs()
       .tz("Asia/Dhaka")
       .subtract(1, "day")
-      .format("YYYY-MM-DD");
+      .format("YYYY-MM-DD HH:mm:ss");
 
     // Fetch all users
     const users = await usersCollection.find().toArray();
@@ -78,7 +78,6 @@ async function markAbsences() {
     await client.close();
   }
 }
-
 // Schedule a job to run daily at midnight
 cron.schedule("0 0 * * *", markAbsences);
 
@@ -445,10 +444,10 @@ async function run() {
         if (date) {
           const today = moment(date)
             .startOf("day")
-            .format("YYYY-MM-DD");
+            .format("YYYY-MM-DD HH:mm:ss");
           const endOfDay = moment(date)
             .endOf("day")
-            .format("YYYY-MM-DD");
+            .format("YYYY-MM-DD HH:mm:ss");
 
           // Fetch check-ins for today's date
           const todayCheckins = await checkins
