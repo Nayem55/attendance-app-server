@@ -445,10 +445,10 @@ async function run() {
         if (date) {
           const today = moment(date)
             .startOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
+            .format("YYYY-MM-DD");
           const endOfDay = moment(date)
             .endOf("day")
-            .format("YYYY-MM-DD HH:mm:ss");
+            .format("YYYY-MM-DD");
 
           // Fetch check-ins for today's date
           const todayCheckins = await checkins
