@@ -1,8 +1,17 @@
 const express = require("express");
+const cron = require("node-cron");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const moment = require("moment");
 const { default: axios } = require("axios");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+
 
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -20,6 +29,58 @@ const client = new MongoClient(mongoURI, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+async function markAbsences() {
+  try {
+    const usersCollection = client.db("attendance").collection("users");
+    const checkins = client.db("attendance").collection("checkins");
+
+    // Get yesterday's date in Asia/Dhaka timezone
+    const yesterday = dayjs()
+      .tz("Asia/Dhaka")
+      .subtract(1, "day")
+      .format("YYYY-MM-DD");
+
+    // Fetch all users
+    const users = await usersCollection.find().toArray();
+
+    for (const user of users) {
+      const userIdString = user._id.toString();
+
+      // Check if the user has already checked in for the previous day by extracting the date from the time field
+      const attendanceRecord = await checkins.findOne({
+        userId: userIdString,
+        time: { $regex: `^${yesterday}` }, // Match the start of the time string with the formatted date (YYYY-MM-DD)
+      });
+
+      const checkInData = {
+        userId: userIdString,
+        date: yesterday,
+        note: "",
+        image: "",
+        time: yesterday, // Leave empty or set appropriately
+        location: "",
+        status: "Approved",
+        attendance: "absent",
+      };
+
+      if (!attendanceRecord) {
+        // Create an "absent" attendance record
+        await checkins.insertOne(checkInData);
+        console.log(`Marked absent for user: ${user._id} on ${yesterday}`);
+      }
+    }
+
+    console.log("Automatic absence marking completed for yesterday.");
+  } catch (error) {
+    console.error("Error while marking absences:", error);
+  } finally {
+    await client.close();
+  }
+}
+
+// Schedule a job to run daily at midnight
+cron.schedule("0 0 * * *", markAbsences);
 
 async function run() {
   try {
@@ -215,7 +276,7 @@ async function run() {
       try {
         // Reverse geocoding with Google Geocoding API
         const { latitude, longitude } = location;
- 
+
         // Check if the user has already checked in today
         const existingCheckIn = await checkins.findOne({ userId, date });
         if (existingCheckIn) {
@@ -238,7 +299,6 @@ async function run() {
           return res.status(404).json({ message: "User not found" });
         }
 
-
         // Save check-in details to the database
         const checkInData = {
           userId,
@@ -248,6 +308,7 @@ async function run() {
           date,
           location: placeName, // Save the place name instead of lat/lng
           status,
+          attendance: "present",
         };
 
         await checkins.insertOne(checkInData);
@@ -324,28 +385,30 @@ async function run() {
 
     app.post("/checkout", async (req, res) => {
       const { userId, note, image, time, date, location } = req.body;
-    
+
       try {
         // Reverse geocoding with Google Geocoding API
         const { latitude, longitude } = location;
         const geocodeUrl = `https://maps.gomaps.pro/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AlzaSyaYYq5T3EP3itD9q2ADu8EccWBXyXWa1Bx`;
-    
+
         const geocodeResponse = await axios.get(geocodeUrl);
-        const placeName = geocodeResponse.data.results[0]?.formatted_address || "Unknown location";
-    
+        const placeName =
+          geocodeResponse.data.results[0]?.formatted_address ||
+          "Unknown location";
+
         // Find the user by userId
         const user = await users.findOne({ _id: new ObjectId(userId) });
         if (!user) {
           return res.status(404).json({ message: "User not found" });
         }
-    
+
         // Prevent check-out if the user isn't checked in
         if (!user.checkIn) {
           return res.status(400).json({
             message: "You are not checked in. Please check in first.",
           });
         }
-    
+
         // Save check-out details to the database
         const checkOutData = {
           userId,
@@ -355,23 +418,23 @@ async function run() {
           date,
           location: placeName, // Save the place name instead of lat/lng
           status: "Approved",
+          attendance: "present",
         };
-    
+
         await checkouts.insertOne(checkOutData);
-    
+
         // Update the user's check-in status to false
         await users.updateOne(
           { _id: new ObjectId(userId) },
           { $set: { checkIn: false } }
         );
-    
+
         res.status(200).json({ message: "Check-out successful" });
       } catch (error) {
         console.error("Check-out error:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     });
-    
 
     app.get("/api/checkins/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
@@ -519,8 +582,8 @@ async function run() {
       }
     });
 
-     // Add a new holiday
-     app.post("/api/holidays", async (req, res) => {
+    // Add a new holiday
+    app.post("/api/holidays", async (req, res) => {
       const { name, date, description } = req.body;
 
       if (!name || !date) {
@@ -557,7 +620,9 @@ async function run() {
       const holidayId = req.params.holidayId;
 
       try {
-        const holiday = await holidays.findOne({ _id: new ObjectId(holidayId) });
+        const holiday = await holidays.findOne({
+          _id: new ObjectId(holidayId),
+        });
 
         if (!holiday) {
           return res.status(404).json({ message: "Holiday not found" });
@@ -602,7 +667,9 @@ async function run() {
       const holidayId = req.params.holidayId;
 
       try {
-        const result = await holidays.deleteOne({ _id: new ObjectId(holidayId) });
+        const result = await holidays.deleteOne({
+          _id: new ObjectId(holidayId),
+        });
 
         if (result.deletedCount === 0) {
           return res.status(404).json({ message: "Holiday not found" });
@@ -614,7 +681,6 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
-    
   } finally {
   }
 }
