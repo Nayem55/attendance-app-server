@@ -55,13 +55,12 @@ async function markAbsences() {
 
       const checkInData = {
         userId: userIdString,
-        date: yesterday,
+        date: "",
         note: "",
         image: "",
         time: yesterday, // Leave empty or set appropriately
         location: "",
-        status: "Approved",
-        attendance: "absent",
+        status: "Absent",
       };
 
       if (!attendanceRecord) {
