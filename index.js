@@ -11,8 +11,6 @@ const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-
-
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -30,55 +28,54 @@ const client = new MongoClient(mongoURI, {
   serverApi: ServerApiVersion.v1,
 });
 
-async function markAbsences() {
-  try {
-    const usersCollection = client.db("attendance").collection("users");
-    const checkins = client.db("attendance").collection("checkins");
+// async function markAbsences() {
+//   try {
+//     const usersCollection = client.db("attendance").collection("users");
+//     const checkins = client.db("attendance").collection("checkins");
 
-    // Get yesterday's date in Asia/Dhaka timezone
-    const yesterday = dayjs()
-      .tz("Asia/Dhaka")
-      .subtract(1, "day")
-      .format("YYYY-MM-DD HH:mm:ss");
+//     // Get yesterday's date in Asia/Dhaka timezone
+//     const yesterday = dayjs()
+//       .tz("Asia/Dhaka")
+//       .subtract(1, "day")
+//       .format("YYYY-MM-DD HH:mm:ss");
 
-    // Fetch all users
-    const users = await usersCollection.find().toArray();
+//     // Fetch all users
+//     const users = await usersCollection.find().toArray();
 
-    for (const user of users) {
-      const userIdString = user._id.toString();
+//     for (const user of users) {
+//       const userIdString = user._id.toString();
 
-      // Check if the user has already checked in for the previous day by extracting the date from the time field
-      const attendanceRecord = await checkins.findOne({
-        userId: userIdString,
-        time: { $regex: `^${yesterday}` }, // Match the start of the time string with the formatted date (YYYY-MM-DD)
-      });
+//       // Check if the user has already checked in for the previous day by extracting the date from the time field
+//       const attendanceRecord = await checkins.findOne({
+//         userId: userIdString,
+//         time: { $regex: `^${yesterday}` }, // Match the start of the time string with the formatted date (YYYY-MM-DD)
+//       });
 
-      const checkInData = {
-        userId: userIdString,
-        date: "",
-        note: "",
-        image: "",
-        time: yesterday, // Leave empty or set appropriately
-        location: "",
-        status: "Absent",
-      };
+//       const checkInData = {
+//         userId: userIdString,
+//         date: "",
+//         note: "",
+//         image: "",
+//         time: yesterday, // Leave empty or set appropriately
+//         location: "",
+//         status: "Absent",
+//       };
 
-      if (!attendanceRecord) {
-        // Create an "absent" attendance record
-        await checkins.insertOne(checkInData);
-        console.log(`Marked absent for user: ${user._id} on ${yesterday}`);
-      }
-    }
+//       if (!attendanceRecord) {
+//         // Create an "absent" attendance record
+//         await checkins.insertOne(checkInData);
+//         console.log(`Marked absent for user: ${user._id} on ${yesterday}`);
+//       }
+//     }
 
-    console.log("Automatic absence marking completed for yesterday.");
-  } catch (error) {
-    console.error("Error while marking absences:", error);
-  } finally {
-    await client.close();
-  }
-}
-// Schedule a job to run daily at midnight
-cron.schedule("0 0 * * *", markAbsences);
+//     console.log("Automatic absence marking completed for yesterday.");
+//   } catch (error) {
+//     console.error("Error while marking absences:", error);
+//   } finally {
+//     await client.close();
+//   }
+// }
+// cron.schedule("0 0 * * *", markAbsences);
 
 async function run() {
   try {
@@ -86,6 +83,7 @@ async function run() {
     const checkins = client.db("attendance").collection("checkins");
     const checkouts = client.db("attendance").collection("checkouts");
     const holidays = client.db("attendance").collection("holidays");
+    const workingdays = client.db("attendance").collection("working-days");
 
     app.put("/api/checkins/add-status", async (req, res) => {
       try {
@@ -679,6 +677,32 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
+
+    app.get("/api/workingdays", async (req, res) => {
+      try {
+        const { month } = req.query; // Expecting a query parameter like `?month=2025-01`
+        if (!month) {
+          return res
+            .status(400)
+            .json({ error: "Month query parameter is required." });
+        }
+
+        // Fetch the working days for the specified month
+        const workingDay = await workingdays.findOne({ month });
+
+        if (!workingDay) {
+          return res
+            .status(404)
+            .json({ error: "No working days data found for the given month." });
+        }
+
+        res.status(200).json(workingDay);
+      } catch (error) {
+        console.error("Error fetching working days:", error);
+        res.status(500).json({ error: "Internal server error." });
+      }
+    });
+    
   } finally {
   }
 }
