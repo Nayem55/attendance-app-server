@@ -756,11 +756,11 @@ async function run() {
 
     app.get("/api/leave-requests", async (req, res) => {
       try {
-        const leaveRequests = await leaveRequests
+        const applications = await leaveRequests
           .find()
           .sort({ createdAt: -1 })
           .toArray();
-        res.status(200).json(leaveRequests);
+        res.status(200).json(applications);
       } catch (error) {
         console.error("Error fetching leave requests:", error);
         res
