@@ -84,6 +84,7 @@ async function run() {
     const checkouts = client.db("attendance").collection("checkouts");
     const holidays = client.db("attendance").collection("holidays");
     const workingdays = client.db("attendance").collection("working-days");
+    const leaveRequests = client.db("attendance").collection("leaveRequests");
 
     app.put("/api/checkins/add-status", async (req, res) => {
       try {
@@ -705,15 +706,16 @@ async function run() {
 
     app.post("/api/leave-requests", async (req, res) => {
       try {
+        console.log("Request payload:", req.body); // Log incoming data
+    
         const { userName, userId, phoneNumber, leaveStartDate, leaveEndDate, leaveReason, status } = req.body;
     
-        // Validate required fields
         if (!userName || !userId || !phoneNumber || !leaveStartDate || !leaveReason) {
           return res.status(400).json({ message: "All required fields must be provided." });
         }
     
         // Insert into the database
-        const result = await db.collection("leaveRequests").insertOne({
+        const result = await leaveRequests.insertOne({
           userName,
           userId,
           phoneNumber,
@@ -726,17 +728,16 @@ async function run() {
     
         res.status(201).json({ message: "Leave request created successfully", data: result.ops[0] });
       } catch (error) {
-        console.error("Error creating leave request:", error);
-        res.status(500).json({ message: "Internal Server Error", error });
+        console.error("Error creating leave request:", error); // Log the error
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
       }
     });
+    
     
 
     app.get("/api/leave-requests", async (req, res) => {
       try {
-        const leaveRequests = await db
-          .collection("leaveRequests")
-          .find()
+        const leaveRequests = await leaveRequests.find()
           .sort({ createdAt: -1 })
           .toArray();
         res.status(200).json(leaveRequests);
@@ -752,9 +753,7 @@ async function run() {
       const { status } = req.body; // Status can be "approved" or "rejected"
 
       try {
-        const result = await db
-          .collection("leaveRequests")
-          .updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+        const result = await leaveRequests.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
 
         if (result.modifiedCount === 0) {
           return res.status(404).json({ message: "Leave request not found" });
@@ -773,9 +772,7 @@ async function run() {
         const { id } = req.params;
 
         try {
-          const result = await db
-            .collection("leaveRequests")
-            .deleteOne({ _id: new ObjectId(id) });
+          const result = await leaveRequests.deleteOne({ _id: new ObjectId(id) });
 
           if (result.deletedCount === 0) {
             return res.status(404).json({ message: "Leave request not found" });
@@ -796,9 +793,7 @@ async function run() {
         const { userId } = req.params;
 
         try {
-          const leaveRequests = await db
-            .collection("leaveRequests")
-            .find({ userId })
+          const leaveRequests = await leaveRequests.find({ userId })
             .sort({ createdAt: -1 })
             .toArray();
 
