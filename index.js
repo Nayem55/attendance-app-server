@@ -768,6 +768,20 @@ async function run() {
           .json({ message: "Error fetching leave requests", error });
       }
     });
+    app.get("/api/pending-requests", async (req, res) => {
+      try {
+        const applications = await leaveRequests
+          .find({status:"pending"})
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.status(200).json(applications);
+      } catch (error) {
+        console.error("Error fetching leave requests:", error);
+        res
+          .status(500)
+          .json({ message: "Error fetching leave requests", error });
+      }
+    });
 
     app.put("/api/leave-requests/:id", async (req, res) => {
       const { id } = req.params;
