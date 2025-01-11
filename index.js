@@ -866,16 +866,11 @@ async function run() {
       try {
         const leaveRequestsCollection = await leaveRequests;
     
-        // Define the start date for the selected month (first day of the month)
+        // Define the start and end dates for the month
         const startDate = new Date(`${year}-${month}-01T00:00:00.000Z`);
-    
-        // Calculate the end date by moving to the first day of the next month
         const endDate = new Date(startDate);
         endDate.setMonth(startDate.getMonth() + 1); // Add 1 month to the startDate
         endDate.setDate(0); // Move to the last day of the previous month, which is the last day of the selected month
-    
-        console.log("Start Date:", startDate);
-        console.log("End Date:", endDate);
     
         // Fetch all approved leaves for the given user
         const approvedLeaves = await leaveRequestsCollection
@@ -884,12 +879,15 @@ async function run() {
             status: "approved",
             $or: [
               {
+                // Overlap with the month by checking if the leave starts before the month ends and ends after the month starts
                 leaveStartDate: { $lt: endDate, $gte: startDate },
               },
               {
+                // Overlap with the month by checking if the leave ends before the month ends and starts after the month starts
                 leaveEndDate: { $lt: endDate, $gte: startDate },
               },
               {
+                // Covers the case where the leave period spans the whole month
                 leaveStartDate: { $lte: startDate },
                 leaveEndDate: { $gte: endDate },
               },
@@ -897,16 +895,14 @@ async function run() {
           })
           .toArray();
     
-        console.log("Approved Leaves:", approvedLeaves);
-    
         // Calculate the total leave days within the given month
         const totalLeaveDays = approvedLeaves.reduce((totalDays, leave) => {
           const leaveStart = new Date(leave.leaveStartDate);
           const leaveEnd = new Date(leave.leaveEndDate);
     
-          // Calculate the overlap between the leave dates and the selected month
+          // Adjust the effective start and end dates based on the selected month
           const effectiveStart = leaveStart < startDate ? startDate : leaveStart;
-          const effectiveEnd = leaveEnd > endDate ? new Date(endDate - 1) : leaveEnd;
+          const effectiveEnd = leaveEnd > endDate ? new Date(endDate) : leaveEnd; // Fix: endDate should be included
     
           // Calculate the number of days in the leave period within the selected month
           const daysCount =
@@ -924,6 +920,7 @@ async function run() {
         res.status(500).json({ message: "Error fetching leave requests", error });
       }
     });
+    
     
     
     
