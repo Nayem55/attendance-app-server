@@ -854,68 +854,79 @@ async function run() {
           .json({ message: "Error fetching leave requests", error });
       }
     });
+    
     app.get("/api/leave-requests/user/:userId/monthly", async (req, res) => {
       const { userId } = req.params;
       const { month, year } = req.query;
-
+    
       if (!month || !year) {
-        return res
-          .status(400)
-          .json({ message: "Month and year are required." });
+        return res.status(400).json({ message: "Month and year are required." });
       }
-
+    
       try {
-        const leaveRequestsCollection = await leaveRequests; // Assume leaveRequests is your collection
-
-        // Start and end of the selected month
-        const startOfMonth = new Date(`${year}-${month}-01`);
-        const endOfMonth = new Date(
-          `${year}-${month}-${new Date(year, month, 0).getDate()}` // Last day of the month
-        );
-
-        // Find approved leave requests with overlaps in the given month
+        const leaveRequestsCollection = await leaveRequests;
+    
+        // Define the start date for the selected month (first day of the month)
+        const startDate = new Date(`${year}-${month}-01T00:00:00.000Z`);
+    
+        // Calculate the end date by moving to the first day of the next month
+        const endDate = new Date(startDate);
+        endDate.setMonth(startDate.getMonth() + 1); // Add 1 month to the startDate
+        endDate.setDate(0); // Move to the last day of the previous month, which is the last day of the selected month
+    
+        console.log("Start Date:", startDate);
+        console.log("End Date:", endDate);
+    
+        // Fetch all approved leaves for the given user
         const approvedLeaves = await leaveRequestsCollection
           .find({
             userId,
             status: "approved",
             $or: [
               {
-                startDate: { $lte: endOfMonth },
-                endDate: { $gte: startOfMonth },
+                leaveStartDate: { $lt: endDate, $gte: startDate },
+              },
+              {
+                leaveEndDate: { $lt: endDate, $gte: startDate },
+              },
+              {
+                leaveStartDate: { $lte: startDate },
+                leaveEndDate: { $gte: endDate },
               },
             ],
           })
-          .sort({ createdAt: -1 })
           .toArray();
-
-        // Calculate total leave days within the selected month
-        let totalLeaveDays = 0;
-
-        approvedLeaves.forEach((leave) => {
-          const leaveStart = new Date(leave.startDate);
-          const leaveEnd = new Date(leave.endDate);
-
-          // Determine the actual overlapping period
-          const effectiveStart =
-            leaveStart > startOfMonth ? leaveStart : startOfMonth;
-          const effectiveEnd = leaveEnd < endOfMonth ? leaveEnd : endOfMonth;
-
-          // Calculate the number of days in the overlapping period
-          const daysInMonth = Math.ceil(
-            (effectiveEnd - effectiveStart + 1) / (1000 * 60 * 60 * 24)
-          );
-
-          totalLeaveDays += daysInMonth;
-        });
-
+    
+        console.log("Approved Leaves:", approvedLeaves);
+    
+        // Calculate the total leave days within the given month
+        const totalLeaveDays = approvedLeaves.reduce((totalDays, leave) => {
+          const leaveStart = new Date(leave.leaveStartDate);
+          const leaveEnd = new Date(leave.leaveEndDate);
+    
+          // Calculate the overlap between the leave dates and the selected month
+          const effectiveStart = leaveStart < startDate ? startDate : leaveStart;
+          const effectiveEnd = leaveEnd > endDate ? new Date(endDate - 1) : leaveEnd;
+    
+          // Calculate the number of days in the leave period within the selected month
+          const daysCount =
+            Math.ceil((effectiveEnd - effectiveStart + 1) / (1000 * 60 * 60 * 24)) > 0
+              ? Math.ceil((effectiveEnd - effectiveStart + 1) / (1000 * 60 * 60 * 24))
+              : 0;
+    
+          return totalDays + daysCount;
+        }, 0);
+    
         res.status(200).json({ leaveDays: totalLeaveDays });
+    
       } catch (error) {
         console.error("Error fetching leave requests:", error);
-        res
-          .status(500)
-          .json({ message: "Error fetching leave requests", error });
+        res.status(500).json({ message: "Error fetching leave requests", error });
       }
     });
+    
+    
+    
   } finally {
   }
 }
