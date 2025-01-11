@@ -705,11 +705,10 @@ async function run() {
     });
 
     app.post("/api/leave-requests", async (req, res) => {
-      try {
-        console.log("Request payload:", req.body); // Log incoming data
-    
+      try {    
         const { userName, userId, phoneNumber, leaveStartDate, leaveEndDate, leaveReason, status } = req.body;
     
+        // Validate required fields
         if (!userName || !userId || !phoneNumber || !leaveStartDate || !leaveReason) {
           return res.status(400).json({ message: "All required fields must be provided." });
         }
@@ -720,18 +719,25 @@ async function run() {
           userId,
           phoneNumber,
           leaveStartDate: new Date(leaveStartDate),
-          leaveEndDate: new Date(leaveEndDate),
+          leaveEndDate: new Date(leaveEndDate || leaveStartDate), // Default end date to start date
           leaveReason,
-          status,
+          status: status || "pending", // Default status to "pending"
           createdAt: new Date(),
         });
     
-        res.status(201).json({ message: "Leave request created successfully", data: result.ops[0] });
+        res.status(201).json({
+          message: "Leave request created successfully",
+          data: result.ops ? result.ops[0] : result,
+        });
       } catch (error) {
-        console.error("Error creating leave request:", error); // Log the error
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        console.error("Error creating leave request:", error); // Log the error for debugging
+        res.status(500).json({
+          message: "Internal Server Error",
+          error: error.message,
+        });
       }
     });
+    
     
     
 
