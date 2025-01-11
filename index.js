@@ -770,16 +770,18 @@ async function run() {
     });
     app.get("/api/pending-requests", async (req, res) => {
       try {
-        const applications = await leaveRequests
-          .find({status:"pending"})
-          .sort({ createdAt: -1 })
-          .toArray();
-        res.status(200).json(applications);
+        const pendingCount = await leaveRequests.countDocuments({
+          status: "pending",
+        });
+        res.status(200).json({ pendingCount });
       } catch (error) {
-        console.error("Error fetching leave requests:", error);
+        console.error("Error fetching pending leave requests count:", error);
         res
           .status(500)
-          .json({ message: "Error fetching leave requests", error });
+          .json({
+            message: "Error fetching pending leave requests count",
+            error,
+          });
       }
     });
 
@@ -854,8 +856,6 @@ async function run() {
           .json({ message: "Error fetching leave requests", error });
       }
     });
-
-
   } finally {
   }
 }
