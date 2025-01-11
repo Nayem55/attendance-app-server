@@ -269,11 +269,10 @@ async function run() {
 
     app.post("/checkin", async (req, res) => {
       const { userId, note, image, time, date, location, status } = req.body;
-
+    
       try {
-        // Reverse geocoding with Google Geocoding API
         const { latitude, longitude } = location;
-
+    
         // Check if the user has already checked in today
         const existingCheckIn = await checkins.findOne({ userId, date });
         if (existingCheckIn) {
@@ -282,20 +281,21 @@ async function run() {
               "You have already checked in today. Multiple check-ins are not allowed.",
           });
         }
-
-        const geocodeUrl = `https://maps.gomaps.pro/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AlzaSyaYYq5T3EP3itD9q2ADu8EccWBXyXWa1Bx`;
-
+    
+        // Use Google Geocoding API to get the place name based on latitude and longitude
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyC60piOoQ9-iqUpayrs2GY73vCYnpKLmG0`;
+    
+        // Send request to Google Geocoding API for reverse geocoding
         const geocodeResponse = await axios.get(geocodeUrl);
-        const placeName =
-          geocodeResponse.data.results[0]?.formatted_address ||
-          "Unknown location";
-
+        
+        const placeName = geocodeResponse.data.results[0]?.formatted_address || "Unknown location";
+    
         // Find the user by userId
         const user = await users.findOne({ _id: new ObjectId(userId) });
         if (!user) {
           return res.status(404).json({ message: "User not found" });
         }
-
+    
         // Save check-in details to the database
         const checkInData = {
           userId,
@@ -307,21 +307,22 @@ async function run() {
           status,
           attendance: "present",
         };
-
+    
         await checkins.insertOne(checkInData);
-
+    
         // Update the user's check-in status
         await users.updateOne(
           { _id: new ObjectId(userId) },
           { $set: { checkIn: true, lastCheckedIn: time } }
         );
-
+    
         res.status(200).json({ message: "Check-in successful" });
       } catch (error) {
         console.error("Error during check-in:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     });
+    
 
     app.get("/api/checkouts/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
@@ -920,8 +921,6 @@ async function run() {
         res.status(500).json({ message: "Error fetching leave requests", error });
       }
     });
-    
-    
     
     
   } finally {
