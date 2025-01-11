@@ -702,7 +702,127 @@ async function run() {
         res.status(500).json({ error: "Internal server error." });
       }
     });
-    
+
+    app.post("/api/leave-requests", async (req, res) => {
+      const {
+        userName,
+        userId,
+        phoneNumber,
+        leaveStartDate,
+        leaveEndDate,
+        leaveReason,
+        status,
+      } = req.body;
+
+      try {
+        const result = await db.collection("leaveRequests").insertOne({
+          userName,
+          userId,
+          phoneNumber,
+          leaveStartDate: new Date(leaveStartDate),
+          leaveEndDate: new Date(leaveEndDate),
+          leaveReason,
+          status: status || "pending", // Default status is "pending"
+          createdAt: new Date(),
+        });
+
+        res.status(201).json({
+          message: "Leave request created successfully!",
+          leaveRequest: result.ops[0],
+        });
+      } catch (error) {
+        console.error("Error creating leave request:", error);
+        res
+          .status(500)
+          .json({ message: "Error creating leave request", error });
+      }
+    });
+
+    app.get("/api/leave-requests", async (req, res) => {
+      try {
+        const leaveRequests = await db
+          .collection("leaveRequests")
+          .find()
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.status(200).json(leaveRequests);
+      } catch (error) {
+        console.error("Error fetching leave requests:", error);
+        res
+          .status(500)
+          .json({ message: "Error fetching leave requests", error });
+      }
+    });
+    app.put("/api/leave-requests/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body; // Status can be "approved" or "rejected"
+
+      try {
+        const result = await db
+          .collection("leaveRequests")
+          .updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: "Leave request not found" });
+        }
+
+        res
+          .status(200)
+          .json({ message: "Leave request status updated successfully!" });
+      } catch (error) {
+        console.error("Error updating leave request status:", error);
+        res
+          .status(500)
+          .json({ message: "Error updating leave request status", error });
+      }
+      app.delete("/api/leave-requests/:id", async (req, res) => {
+        const { id } = req.params;
+
+        try {
+          const result = await db
+            .collection("leaveRequests")
+            .deleteOne({ _id: new ObjectId(id) });
+
+          if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Leave request not found" });
+          }
+
+          res
+            .status(200)
+            .json({ message: "Leave request deleted successfully!" });
+        } catch (error) {
+          console.error("Error deleting leave request:", error);
+          res
+            .status(500)
+            .json({ message: "Error deleting leave request", error });
+        }
+      });
+
+      app.get("/api/leave-requests/user/:userId", async (req, res) => {
+        const { userId } = req.params;
+
+        try {
+          const leaveRequests = await db
+            .collection("leaveRequests")
+            .find({ userId })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+          if (leaveRequests.length === 0) {
+            return res
+              .status(404)
+              .json({ message: "No leave requests found for this user." });
+          }
+
+          res.status(200).json(leaveRequests);
+        } catch (error) {
+          console.error("Error fetching leave requests for user:", error);
+          res
+            .status(500)
+            .json({ message: "Error fetching leave requests", error });
+        }
+      });
+    });
   } finally {
   }
 }
