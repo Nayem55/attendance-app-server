@@ -387,12 +387,10 @@ async function run() {
       try {
         // Reverse geocoding with Google Geocoding API
         const { latitude, longitude } = location;
-        const geocodeUrl = `https://maps.gomaps.pro/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AlzaSyaYYq5T3EP3itD9q2ADu8EccWBXyXWa1Bx`;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyC60piOoQ9-iqUpayrs2GY73vCYnpKLmG0`;
 
         const geocodeResponse = await axios.get(geocodeUrl);
-        const placeName =
-          geocodeResponse.data.results[0]?.formatted_address ||
-          "Unknown location";
+        const placeName = geocodeResponse.data.results[0]?.formatted_address || "Unknown location";
 
         // Find the user by userId
         const user = await users.findOne({ _id: new ObjectId(userId) });
