@@ -521,8 +521,15 @@ async function run() {
 
     app.get("/getAllUser", async (req, res) => {
       try {
-        const user = await users.find({}).toArray();
-
+        const { role } = req.query; // Get the role from query parameter
+        let query = {};
+    
+        if (role) {
+          query.role = role; // Filter by role if it's provided
+        }
+    
+        const user = await users.find(query).toArray();
+    
         if (user) {
           res.status(200).send(user);
         } else {
@@ -533,6 +540,7 @@ async function run() {
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+    
 
     app.get("/getUser/:userId", async (req, res) => {
       const userId = req.params.userId;
