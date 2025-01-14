@@ -103,6 +103,59 @@ async function run() {
         res.status(500).json({ error: "Internal Server Error" });
       }
     });
+    app.put("/update-checkout-status", async (req, res) => {
+      try {
+        // Fetch all documents from the checkouts collection
+        const checkoutCollection = await checkouts.find({}).toArray();
+    
+        const bulkOperations = checkoutCollection.map((checkout) => {
+          const checkoutTime = dayjs(checkout.time, "YYYY-MM-DD HH:mm:ss");
+          const cutoffTime = dayjs(checkout.time.split(' ')[0] + " 20:00:00", "YYYY-MM-DD HH:mm:ss");
+    
+          // Determine status based on checkout time
+          const status = checkoutTime.isAfter(cutoffTime) ? "Overtime" : "Success";
+    
+          return {
+            updateOne: {
+              filter: { _id: checkout._id },
+              update: { $set: { status } },
+            },
+          };
+        });
+    
+        // Perform bulk update
+        const result = await checkouts.bulkWrite(bulkOperations);
+    
+        res.status(200).json({
+          message: "Checkout statuses updated successfully",
+          modifiedCount: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error("Error updating checkouts:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+    //bulk delete
+    app.delete("/bulk-delete", async (req, res) => {
+      try {
+        // Specify the cutoff date
+        const cutoffDate = dayjs("2025-01-01", "YYYY-MM-DD").format("YYYY-MM-DD HH:mm:ss");
+    
+        // Perform bulk deletion of records before the cutoff date
+        const result = await checkins.deleteMany({
+          time: { $lt: cutoffDate }, // Compare using string-based format
+        });
+    
+        res.status(200).json({
+          message: "Records deleted successfully",
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        console.error("Error deleting records:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+    
 
     // Sign-up Route
     app.post("/signup", async (req, res) => {
