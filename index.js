@@ -156,7 +156,6 @@ async function run() {
       }
     });
     
-
     // Sign-up Route
     app.post("/signup", async (req, res) => {
       const { email, password, name, number } = req.body;
@@ -358,7 +357,6 @@ async function run() {
           date,
           location: placeName, // Save the place name instead of lat/lng
           status,
-          attendance: "present",
         };
     
         await checkins.insertOne(checkInData);
@@ -376,7 +374,6 @@ async function run() {
       }
     });
     
-
     app.get("/api/checkouts/:userId", async (req, res) => {
       const userId = req.params.userId.toString();
       const { month, year, date } = req.query; // Accept month, year, or date as query parameters
@@ -435,7 +432,7 @@ async function run() {
     });
 
     app.post("/checkout", async (req, res) => {
-      const { userId, note, image, time, date, location } = req.body;
+      const { userId, note, image, time, date, location, status } = req.body;
 
       try {
         // Reverse geocoding with Google Geocoding API
@@ -466,8 +463,7 @@ async function run() {
           time,
           date,
           location: placeName, // Save the place name instead of lat/lng
-          status: "Approved",
-          attendance: "present",
+          status,
         };
 
         await checkouts.insertOne(checkOutData);
