@@ -590,6 +590,33 @@ async function run() {
       }
     });
     
+    app.post("/api/users", async (req, res) => {
+      try {
+        const newUser = req.body;
+        const result = await users.insertOne(newUser);
+        res.status(201).send({ message: "User added successfully", user: result.ops[0] });
+      } catch (error) {
+        console.error("Error adding user:", error);
+        res.status(500).send({ message: "Failed to add user" });
+      }
+    });
+
+    app.delete("/api/users/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await users.deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 1) {
+          res.status(200).send({ message: "User deleted successfully" });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).send({ message: "Failed to delete user" });
+      }
+    });
+    
+    
 
     app.get("/getUser/:userId", async (req, res) => {
       const userId = req.params.userId;
