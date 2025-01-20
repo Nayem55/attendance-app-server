@@ -591,14 +591,9 @@ async function run() {
     });
     
     app.post("/api/users", async (req, res) => {
-      try {
         const newUser = req.body;
         const result = await users.insertOne(newUser);
-        res.status(201).send({ message: "User added successfully", user: result.ops[0] });
-      } catch (error) {
-        console.error("Error adding user:", error);
-        res.status(500).send({ message: "Failed to add user" });
-      }
+        res.status(201).send(result);
     });
 
     app.delete("/api/users/:id", async (req, res) => {
