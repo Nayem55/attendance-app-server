@@ -570,25 +570,33 @@ async function run() {
 
     app.get("/getAllUser", async (req, res) => {
       try {
-        const { role } = req.query; // Get the role from query parameter
+        const { role, group, zone } = req.query; // Get role, group, and zone from query parameters
         let query = {};
     
+        // Add filters based on the provided parameters
         if (role) {
-          query.role = role; // Filter by role if it's provided
+          query.role = role;
+        }
+        if (group) {
+          query.group = group;
+        }
+        if (zone) {
+          query.zone = zone;
         }
     
         const user = await users.find(query).toArray();
     
-        if (user) {
+        if (user.length > 0) {
           res.status(200).send(user);
         } else {
-          res.status(404).send({ message: "User not found" });
+          res.status(404).send({ message: "No users found with the given filters" });
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching users:", error);
         res.status(500).send({ message: "Internal Server Error" });
       }
     });
+    
     
     app.post("/api/users", async (req, res) => {
         const newUser = req.body;
