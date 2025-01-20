@@ -593,7 +593,7 @@ async function run() {
     app.post("/api/users", async (req, res) => {
         const newUser = req.body;
         const result = await users.insertOne(newUser);
-        res.status(201).send(result);
+        res.send(result);
     });
 
     app.delete("/api/users/:id", async (req, res) => {
