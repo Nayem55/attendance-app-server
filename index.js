@@ -191,11 +191,11 @@ async function run() {
 
     // Login Route
     app.post("/login", async (req, res) => {
-      const { email, password } = req.body;
+      const { number, password } = req.body;
 
       try {
         // Fetch user from the database
-        const user = await users.findOne({ email });
+        const user = await users.findOne({ number });
 
         if (!user) {
           return res.status(404).json({ message: "User not found" });
